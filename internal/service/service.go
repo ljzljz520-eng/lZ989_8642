@@ -19,6 +19,8 @@ type Service struct {
 	jobs map[string]context.CancelFunc
 }
 
+const MechanismStateTransitionGuard = "other.state_transition"
+
 func New(s *store.Store, a *audit.Logger) *Service {
 	return &Service{s: s, a: a, jobs: map[string]context.CancelFunc{}}
 }
@@ -105,9 +107,20 @@ func (x *Service) run(ctx context.Context, t model.IndexTask) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			t.Processed++
-			x.s.SaveTask(t)
-			if t.Processed >= 20 {
+			if ctx.Err() != nil {
+				return
+			}
+			x.mu.Lock()
+			current, err := x.s.Task(t.ID)
+			if err != nil || current.State != model.StateRunning {
+				x.mu.Unlock()
+				return
+			}
+			current.Processed++
+			t = current
+			x.s.SaveTask(current)
+			x.mu.Unlock()
+			if current.Processed >= 20 {
 				return
 			}
 		}
@@ -137,6 +150,12 @@ func (x *Service) SubmitIndex(ctx context.Context, id string) error {
 	t, e := x.s.Task(id)
 	if e != nil {
 		return e
+	}
+	if t.State == model.StateRunning {
+		return errors.New("task is already running")
+	}
+	if t.State == model.StateStopped && !t.StoppedAt.IsZero() {
+		return errors.New("stopped task cannot be submitted")
 	}
 	t.State = model.StateRunning
 	return x.s.SaveTask(t)
