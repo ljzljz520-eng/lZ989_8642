@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "metrics": {"production_loc": 2577, "production_files": 24, "production_packages": 9, "test_files": 9, "production_functions": 92, "decision_points": 130},
+  "metrics": {"production_loc": 2572, "production_files": 24, "production_packages": 9, "test_files": 9, "production_functions": 92, "decision_points": 128},
   "persistence": {"module": "go.etcd.io/bbolt", "entities": ["Record", "Profile", "Event", "Audit", "IndexTask"], "reopen_test": "TestPersistenceSurvivesReopen"},
   "workflows": [
     {"steps": ["接收", "校验", "保存", "展示"], "test": "TestWorkflowOne"},

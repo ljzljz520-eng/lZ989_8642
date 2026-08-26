@@ -20,6 +20,7 @@ type Service struct {
 }
 
 const MechanismStateTransitionGuard = "other.state_transition"
+const MechanismID = MechanismStateTransitionGuard
 
 func New(s *store.Store, a *audit.Logger) *Service {
 	return &Service{s: s, a: a, jobs: map[string]context.CancelFunc{}}
@@ -150,12 +151,6 @@ func (x *Service) SubmitIndex(ctx context.Context, id string) error {
 	t, e := x.s.Task(id)
 	if e != nil {
 		return e
-	}
-	if t.State == model.StateRunning {
-		return errors.New("task is already running")
-	}
-	if t.State == model.StateStopped && !t.StoppedAt.IsZero() {
-		return errors.New("stopped task cannot be submitted")
 	}
 	t.State = model.StateRunning
 	return x.s.SaveTask(t)
